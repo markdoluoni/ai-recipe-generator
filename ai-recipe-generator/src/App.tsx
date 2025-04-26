@@ -1,15 +1,8 @@
 import { FormEvent, useState } from "react";
-import { Loader, Placeholder } from "@aws-amplify/ui-react";
-import "./App.css";
-import { Amplify } from "aws-amplify";
-import { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
+import { Schema } from "../amplify/data/resource";  // important
 import outputs from "../amplify_outputs.json";
-
-
 import "@aws-amplify/ui-react/styles.css";
-
-Amplify.configure(outputs);
 
 const amplifyClient = generateClient<Schema>({
   authMode: "userPool",
@@ -25,20 +18,31 @@ function App() {
 
     try {
       const formData = new FormData(event.currentTarget);
-      
-      const { data, errors } = await amplifyClient.queries.askBedrock({
-        ingredients: [formData.get("ingredients")?.toString() || ""],
-      });
+      const ingredientsRaw = formData.get("ingredients")?.toString() || "";
 
-      if (!errors) {
-        setResult(data?.body || "No data returned");
-      } else {
-        console.log(errors);
+      if (!ingredientsRaw.trim()) {
+        alert("Please enter some ingredients first.");
+        setLoading(false);
+        return;
       }
 
-  
+      const ingredients = ingredientsRaw.split(",").map((i) => i.trim());
+
+      const { data, errors } = await amplifyClient.queries.askBedrock({
+        ingredients,
+      });
+
+      if (data) {
+        setResult(data.body || "No recipe returned.");
+      } else if (errors) {
+        console.error("Errors from API:", errors);
+        alert("An error occurred. See console for details.");
+      } else {
+        setResult("No response from server.");
+      }
     } catch (e) {
-      alert(`An error occurred: ${e}`);
+      console.error("Catch Error:", e);
+      alert("Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -48,40 +52,28 @@ function App() {
     <div className="app-container">
       <div className="header-container">
         <h1 className="main-header">
-         Mark Oluoni
-          Meet Your Personal
-          <br />
+          Mark Oluoni's <br /> Personal <br />
           <span className="highlight">Recipe AI</span>
         </h1>
         <p className="description">
-          Simply type a few ingredients using the format ingredient1,
-          ingredient2, etc., and Recipe AI will generate an all-new recipe on
-          demand...
+          Type ingredients (e.g., Chicken, Rice, Beans) and get a new recipe!
         </p>
       </div>
+
       <form onSubmit={onSubmit} className="form-container">
-        <div className="search-container">
-          <input
-            type="text"
-            className="wide-input"
-            id="ingredients"
-            name="ingredients"
-            placeholder="Ingredient1, Ingredient2, Ingredient3,...etc"
-          />
-          <button type="submit" className="search-button">
-            Generate
-          </button>
-        </div>
+        <input
+          type="text"
+          id="ingredients"
+          name="ingredients"
+          placeholder="Ingredient1, Ingredient2, Ingredient3, ..."
+          required
+        />
+        <button type="submit" className="search-button">Generate</button>
       </form>
+
       <div className="result-container">
         {loading ? (
-          <div className="loader-container">
-            <p>Loading...</p>
-            <Loader size="large" />
-            <Placeholder size="large" />
-            <Placeholder size="large" />
-            <Placeholder size="large" />
-          </div>
+          <div className="loader-container"><p>Loading...</p></div>
         ) : (
           result && <p className="result">{result}</p>
         )}
