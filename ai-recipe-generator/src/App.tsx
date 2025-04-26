@@ -22,31 +22,27 @@ function App() {
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-
-    const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setLoading(true);
-    
-      try {
-        const formData = new FormData(event.currentTarget);
-        const ingredients = formData.get("ingredients")?.toString() || "";
-    
-        const { data, errors } = await amplifyClient.queries.askBedrock({
-          prompt: `Create a simple recipe using the following ingredients: ${ingredients}. Respond with just the recipe, no extra text.`,
-        });
-    
-        if (!errors) {
-          setResult(data?.body || "No data returned");
-        } else {
-          console.log(errors);
-        }
-      } catch (e) {
-        alert(`An error occurred: ${e}`);
-      } finally {
-        setLoading(false);
+  
+    try {
+      const formData = new FormData(event.currentTarget);
+      const ingredients = formData.get("ingredients")?.toString() || "";
+  
+      const { data, errors } = await amplifyClient.queries.askBedrock({
+        ingredients: ingredients.split(",").map(ing => ing.trim()),
+      });
+  
+      if (!errors) {
+        setResult(data?.body || "No data returned");
+      } else {
+        console.log(errors);
       }
-    };
-    
+    } catch (e) {
+      alert(`An error occurred: ${e}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   return (
     <div className="app-container">
@@ -93,5 +89,5 @@ function App() {
     </div>
   );
 }
-}
+
 export default App;
